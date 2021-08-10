@@ -1,9 +1,34 @@
-import React, {useState} from 'react';
+import React, {useState, useContext, useEffect, useCallback} from 'react';
+import {GlobalContext} from '../../context/Provider';
 import RegisterComponent from '../../components/SignUp';
+import register, {clearAuthState} from '../../context/actions/auth/register';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {LOGIN} from '../../constants/routeNames';
 
 const Register = () => {
   const [form, setForm] = useState({});
   const [errors, setErrors] = useState({});
+  const {navigate} = useNavigation();
+  const {
+    authDispatch,
+    authState: {error, loading, data},
+  } = useContext(GlobalContext);
+
+  useEffect(() => {
+    if (data) {
+      navigate(LOGIN);
+    }
+  }, [data]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        if (data || error) {
+          clearAuthState()(authDispatch);
+        }
+      };
+    }, [data, error]),
+  );
 
   const onChange = ({name, value}) => {
     setForm({
@@ -69,6 +94,14 @@ const Register = () => {
         password: 'Please add a Password',
       }));
     }
+
+    if (
+      Object.values(form).length === 5 &&
+      Object.values(form).every(item => item.trim().length > 0) &&
+      Object.values(errors).every(item => !item)
+    ) {
+      register(form)(authDispatch);
+    }
   };
 
   return (
@@ -76,6 +109,9 @@ const Register = () => {
       onChange={onChange}
       form={form}
       errors={errors}
+      error={error}
+      loading={loading}
+      disabled={loading}
       onSubmit={onSubmit}
     />
   );
